@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Proxy Pracitce</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+</head>
+
+<!--proxy 패턴
+    P. 186 ~ 190 
+    proxy : 중간자
+    proxy는 클라이언트와 서버 사이에서 중간자 역할을 한다.
+    대표적으로, 클라이언트가 서버에 접근하지 못하도록 가상화 또는 캡슐화 하는 기능을 위해 구현한다.
+
+      클라이언트의 요청 
+    Client -> Proxy -> Server
+                    ->
+                    ->
+                    실제 요청
+
+       클라이언트의 응답
+    Client <- Proxy <- Server
+                    <-
+                    <-
+                    실제 응답
+    여러개의 복잡한 응답,요청 등을 한 번에 취합하여 하나의 응답, 요청으로 Client에게 전송한다.
+
+    
+    p. 191 ~ 192
+    Proxy를 활용한 캐시
+    중간자의 역할로써(Interceptor 같은 느낌으로 이해됨) 한 번 응답한 적이 있으면 같은 응답을 전송. 
+    proxyClickEventHandler = (function (){
+        var cache = {};
+        return function (command) {
+            var video;
+            if(controlVideo.hasOwnProperty(command)) {
+                if (cache.hasOwnProperty(selectControlVideo.value)) { //캐시가 selectControlVideo.value 값을 가지고 있을 때
+                    video = cache[selectControlVideo.value];  //video는 캐시의 selectControlVideo.value값이 됨.
+                } else { // 캐시가 selectControlVideo.value 값을 가지고 있지 않을 때, (즉 처음 실행하는 명령일 경우)
+                    video = controlVideo.getVideoById(selectControlVideo.value); controlvideo의 값 (videoBunnySmall, videoBunnyMedium, videoBunnyLarge) 중의 하나를 video에 저장
+                    cache[selectControlVideo.value] = video; cache의 document.getElementById("controlVideo") property 값에 video 값이 저장 됨.
+                }
+                controlVideo[command].call(this, video); 조건문 분기에 따라 나온 video id에 command(play,pause,volumeUp,volumeDown) 실행
+            }
+        };
+    }());
+
+    
+    p. 193 ~ 196
+    Proxy를 활용해 비동기 요청/응답 처리 이슈 해소
+    function proxySendChat(chat) {
+        === : 일치연산자. 값 비교를 보다 정확하게 함. (완전 일치하지 않을 경우 false)
+        if (isPending === true) {
+            requestChat.push(chat);
+        } else {
+            sendChatRequest([chat]);
+        }
+    }
+    ----] isPending은 초기값이 false인데, 교제 p. 195의 내용을 보면 sendChatRequest에서 isPending을 true로 바꿔줌으로써 XMLHttpRequest가 도는 동안 sendChatRequest는 결국 한 번만 호출된다.
+          그 동안, requestChat 배열에 chat 값을 누적하고 이전 XMLHttpRequest가 끝나면 requestChat 배열의 내용을 한 번에 전달하는 식이다.
+    
+    p. 197 ~ 201
+    Proxy를 활용한 Wrapper 기능 구현
+    -- Wrapper의 의의는 전처리에 있다.--
+    기존 인자를 이용해 큰 소스 변경 없이 전처리 기능을 제공할 수 있다.
+    제시 방법 - 기존 함수와 같은 이름으로 Wrapper 함수 활용, 기존 함수를 백업하여 활용하는 Wrapper
+
+    기존 함수와 같은 이름으로 Wrapper 함수의 경우 
+    하위 클로저에 기존 함수를 백업해서 사용할 수 있지만, 
+    소스 분석에 어려움이 따를 수 있고 상위에 새로운 클로저를 정의하는 번거로움이 있다.
+
+    기존 함수를 백업하여 활용하는 Wrapper 함수의 경우
+    소스 변경이 가장 적으므로 고려할만 하다.
+    향후 같은 함수와 변수명이 있을 때 소스 분석이 어려울 수도 있다.
+
+    p. 202 ~ 203
+    로그 기록을 위한 래퍼 예
+    하단에 소스 참고
+
+-->
+
+<body>
+    <input type="text" id="hour">
+    <input type="text" id="minute">
+    <button id="for_click">버튼</button>
+    <script>
+        (function () {
+
+            //p. 186 ~ 190
+            var Work_record = (function () {
+
+                function Work_record() { }; //생성자
+
+                Work_record.prototype.enter = function (entertime) {
+                    console.log('윤상2 사원은 본사에 ' + entertime + '에 출근했습니다.');
+                };
+
+                Work_record.prototype.result = function (result) {
+                    console.log(result + ' 입니다.(본사)');
+                };
+                return Work_record;
+            })();
+
+            var Work_recordProxy = (function () {
+
+                function Work_recordProxy(work_place) { //생성자
+                    this.work_place = work_place;
+                    this.hour = parseInt(document.getElementById("hour").value);
+                    this.minute = parseInt(document.getElementById("minute").value);
+
+                    if (this.minute < 10 && this.minute > 0) {
+                        this.enter_time = this.hour + ":0" + this.minute;
+                    }
+                    else {
+                        this.enter_time = this.hour + ":" + this.minute;
+                    }
+                    this.work_record = new Work_record();
+                }
+
+                Work_recordProxy.prototype.enter = function () {
+                    console.log('윤상1 사원은 ' + this.work_place + '에 ' + this.enter_time + '에 출근했습니다.');
+                    this.work_record.enter(this.enter_time);
+                };
+
+                Work_recordProxy.prototype.result = function () {
+                    var result = "정상출근";
+                    if (this.hour * 60 + this.minute > 510 && this.work_place == '국중') //근무지가 국중이면서 08:30이 넘으면
+                    {
+                        result = "지각";
+                    }
+                    console.log(result + ' 입니다.(국중)');
+
+                    this.work_place = '본사';
+                    var result = "정상출근";
+                    if (this.hour * 60 + this.minute > 540 && this.work_place == '본사') //근무지가 본사이면서 09:00이 넘으면
+                    {
+                        result = "지각";
+                    }
+                    this.work_record.result(result);
+
+                };
+
+                return Work_recordProxy;
+            })();
+
+            //p. 202 ~ 203
+            var car = {
+                beep: function beep() {
+                    alert("BEEP");
+                },
+
+                brake: function brake() {
+                    alert("STOP!");
+                },
+
+                accelerator: function accelerator() {
+                    alert("GO");
+                }
+            };
+
+            function wrap(func, wrapper) {
+                return function () {
+                    var args = [func].concat(Array.prototype.slice.call(arguments)); //func의 property값을 args에 담음
+                    return wrapper.apply(this, args);
+                };
+            }
+
+            function wrapObject(obj, wrapper) {
+                var prop;
+                for (prop in obj) {
+                    if (obj.hasOwnProperty(prop) && typeof obj[prop] === "function") { //속성이 함수일 때
+                        obj[prop] = wrap(obj[prop], wrapper);
+                    }
+                }
+            }
+            var button_click = (function () {
+                var cache = {};
+                return function () {
+                    if (document.getElementById("hour").value == '' && document.getElementById("minute").value == '') {
+                        wrapObject(car, function (func) {
+                            func.apply(this, Array.prototype.slice(arguments, 1));
+                            console.log(func.name + " has been invoked");
+
+                        });
+
+                        car.accelerator();
+                        car.beep();
+                        car.brake();
+                    }
+                    //버튼 클릭할 때마다 호출하게끔 처리해서 그런지는 모르겠지만, func.name값이 안넘어 온 log가 버튼 클릭 횟수만큼 찍히는 현상이 있다.
+
+                    else {
+                        var Work_record = new Work_recordProxy('국중');
+                        Work_record.enter();
+                        Work_record.result();
+                    }
+                    //여기서 중간자는 work_record라는 근태기록 시스템
+                    //중간 단계를 거쳐, 원래 객체로 도달하게 만들었다. 
+                    //(하지만 이 예제 자체가 기능적으로 원래 객체에 도달하는 데에 의의가 있냐 하면 없다고 보는게 맞다.)
+
+
+                    // if (cache.hasOwnProperty("createYN")) {
+                    //   cache[createYN] = "다시 생성안함";
+                    // }
+                    // else {
+                    //     cache[createYN] = "생성됨";
+                    // }
+                    // console.log(cache); 
+                }
+            }());
+            document.getElementById("for_click").addEventListener("click", function () {
+                button_click();
+            }, true);
+
+
+        }());
+
+    </script>
+</body>
+
+</html>
